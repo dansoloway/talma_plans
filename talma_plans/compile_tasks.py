@@ -8,6 +8,7 @@ in-app; spreadsheet column order for pairs does not matter (see ``focus_areas``)
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 
@@ -156,3 +157,41 @@ def tasks_per_focus_area_rollup(
         .reset_index(drop=True)
     )
     return out
+
+
+def filter_tasks_by_focus_group(
+    df: pd.DataFrame,
+    *,
+    mode: Literal["exact_pair", "rollup_area"],
+    group_label: str,
+    unassigned_label: str = "(Unassigned)",
+) -> pd.DataFrame:
+    """
+    Subset ``df`` to tasks belonging to a row from **Tasks per focus group**.
+
+    - ``exact_pair``: ``group_label`` is a ``focus_area_combo`` value, or
+      ``unassigned_label`` for rows with no combo.
+    - ``rollup_area``: ``group_label`` is a single focus area touching slot 1 or 2,
+      or ``unassigned_label`` when both slots are empty.
+    """
+    if df.empty:
+        return df.copy()
+
+    if mode == "exact_pair":
+        if group_label == unassigned_label:
+            if "focus_area_combo" not in df.columns:
+                return df.iloc[0:0].copy()
+            combo = df["focus_area_combo"]
+            empty = combo.isna() | (combo.astype(str).str.strip() == "")
+            return df.loc[empty].copy()
+        if "focus_area_combo" not in df.columns:
+            return df.iloc[0:0].copy()
+        return df.loc[df["focus_area_combo"] == group_label].copy()
+
+    f1 = df["focus_area_1"] if "focus_area_1" in df.columns else pd.Series(pd.NA, index=df.index)
+    f2 = df["focus_area_2"] if "focus_area_2" in df.columns else pd.Series(pd.NA, index=df.index)
+    if group_label == unassigned_label:
+        empty = f1.isna() & f2.isna()
+        return df.loc[empty].copy()
+    m = (f1 == group_label) | (f2 == group_label)
+    return df.loc[m].copy()

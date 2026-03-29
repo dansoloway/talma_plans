@@ -13,6 +13,7 @@ import pandas as pd
 import streamlit as st
 
 from talma_plans.compile_tasks import (
+    filter_tasks_by_focus_group,
     focus_area_filter_choices,
     load_compiled_tasks,
     tasks_per_focus_area_rollup,
@@ -120,7 +121,53 @@ def main() -> None:
         if len(summary):
             chart_df = summary.set_index(count_col)
             st.bar_chart(chart_df)
-            st.dataframe(summary, use_container_width=True, hide_index=True)
+            st.subheader("Drill down")
+            st.caption(
+                "Click a row in the table to list tasks in that focus group and which department "
+                "(sheet) they came from."
+            )
+            pick_key = f"focus_summary_{group_mode}"
+            selection = st.dataframe(
+                summary,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key=pick_key,
+            )
+            row_idxs: list[int] = []
+            if selection is not None:
+                try:
+                    row_idxs = list(selection.selection.rows)
+                except (AttributeError, KeyError, TypeError):
+                    row_idxs = []
+
+            if row_idxs:
+                label = str(summary.iloc[row_idxs[0]][count_col])
+                drilled = filter_tasks_by_focus_group(
+                    filtered,
+                    mode=group_mode,
+                    group_label=label,
+                )
+                st.markdown(f"**{label}** — {len(drilled)} task(s)")
+                drill_cols = [
+                    c
+                    for c in [
+                        "source_sheet",
+                        "Task Name",
+                        "Focus Area",
+                        "focus_area_combo",
+                        "Status",
+                        "Priority",
+                    ]
+                    if c in drilled.columns
+                ]
+                display = drilled[drill_cols].copy() if drill_cols else drilled.copy()
+                if "source_sheet" in display.columns:
+                    display = display.rename(columns={"source_sheet": "Department"})
+                st.dataframe(display, use_container_width=True, hide_index=True)
+            else:
+                st.info("Select a row in the table above to see matching tasks.")
         else:
             st.info("No tasks match the current filters.")
 
