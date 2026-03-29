@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Tests / tools
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Streamlit local secrets (never commit tokens)
+.streamlit/secrets.toml
