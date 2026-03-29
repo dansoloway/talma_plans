@@ -90,8 +90,8 @@ def main() -> None:
         group_mode = st.radio(
             "How to group",
             options=[
-                "exact_pair",
                 "rollup_area",
+                "exact_pair",
             ],
             format_func=lambda k: {
                 "exact_pair": "Exact pair (normalized combo, e.g. A | B)",
@@ -153,12 +153,13 @@ def main() -> None:
                 drill_cols = [
                     c
                     for c in [
-                        "source_sheet",
                         "Task Name",
-                        "Focus Area",
-                        "focus_area_combo",
+                        "source_sheet",
+                        "Start Date",
+                        "End Date",
                         "Status",
                         "Priority",
+                        "focus_area_combo",
                     ]
                     if c in drilled.columns
                 ]
