@@ -9,6 +9,7 @@ import pandas as pd
 from talma_plans.compile_tasks import (
     compile_all_task_sheets,
     focus_area_filter_choices,
+    tasks_per_focus_area_rollup,
     tasks_per_focus_group,
 )
 
@@ -37,3 +38,20 @@ def test_tasks_per_focus_group() -> None:
     assert by_name["Alumni"] == 2
     assert by_name["Full Year | PD"] == 1
     assert by_name["(Unassigned)"] == 1
+
+
+def test_tasks_per_focus_area_rollup_double_counts_two_slot_tasks() -> None:
+    rollup = tasks_per_focus_area_rollup(
+        pd.DataFrame(
+            {
+                "focus_area_1": ["Eval External", "Eval External", None],
+                "focus_area_2": ["Full Year", "Merhavim", None],
+            },
+        ),
+    )
+    by_name = rollup.set_index("focus_area")["tasks"].to_dict()
+    assert by_name["Eval External"] == 2
+    assert by_name["Full Year"] == 1
+    assert by_name["Merhavim"] == 1
+    assert by_name["(Unassigned)"] == 1
+    assert int(rollup["tasks"].sum()) == 5  # 2+1+1+1, not 3 tasks

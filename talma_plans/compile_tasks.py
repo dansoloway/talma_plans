@@ -114,3 +114,45 @@ def tasks_per_focus_group(
         .reset_index(drop=True)
     )
     return out
+
+
+def tasks_per_focus_area_rollup(
+    df: pd.DataFrame,
+    *,
+    unassigned_label: str = "(Unassigned)",
+) -> pd.DataFrame:
+    """
+    Count how many tasks **touch** each distinct focus area (slot 1 or slot 2).
+
+    A task with two different areas adds **one** to each area’s count, so the sum
+    of ``tasks`` down the table can exceed the number of rows in ``df``. Tasks
+    with no focus areas count once under ``unassigned_label``.
+    """
+    if df.empty:
+        return pd.DataFrame(columns=["focus_area", "tasks"])
+
+    fa1 = df["focus_area_1"] if "focus_area_1" in df.columns else pd.Series(pd.NA, index=df.index)
+    fa2 = df["focus_area_2"] if "focus_area_2" in df.columns else pd.Series(pd.NA, index=df.index)
+
+    records: list[str] = []
+    for i in range(len(df)):
+        areas: list[str] = []
+        for v in (fa1.iloc[i], fa2.iloc[i]):
+            if pd.notna(v):
+                s = str(v).strip()
+                if s and s not in areas:
+                    areas.append(s)
+        if not areas:
+            records.append(unassigned_label)
+        else:
+            records.extend(areas)
+
+    out = (
+        pd.Series(records, dtype="string")
+        .value_counts()
+        .rename_axis("focus_area")
+        .reset_index(name="tasks")
+        .sort_values(["tasks", "focus_area"], ascending=[False, True])
+        .reset_index(drop=True)
+    )
+    return out
